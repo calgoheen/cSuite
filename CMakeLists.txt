@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.22.1)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OSX deployment target")
 
 file(STRINGS "VERSION" CurrentVersion)
-project("cSuite" VERSION ${CurrentVersion})
+
+# Remove prerelease suffix from VERSION string for CMake project version
+string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" ProjectVersion "${CurrentVersion}")
+
+project("cSuite" VERSION ${ProjectVersion})
 
 include(FetchContent)
 
