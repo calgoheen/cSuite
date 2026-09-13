@@ -22,7 +22,7 @@ FetchContent_MakeAvailable(chowdsp_utils)
 
 FetchContent_Declare(clap-juce-extensions
     GIT_REPOSITORY https://github.com/free-audio/clap-juce-extensions.git
-    GIT_TAG ea834dfd366ab2103b98e92eaacb581c69fc2e0b)
+    GIT_TAG 55525c9858d4b25687be7759a5e0f70eccef218e)
 FetchContent_MakeAvailable(clap-juce-extensions)
 
 add_subdirectory(cgo_modules)
