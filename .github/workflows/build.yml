@@ -262,8 +262,102 @@ jobs:
           name: ${{ steps.product.outputs.name }}-installer-macos
           path: build/installer/output/*.pkg
 
+  build-linux:
+    # Build on the oldest supported runner so the binaries link against an
+    # older glibc and stay usable on a wider range of distros.
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Read product info
+        id: product
+        run: |
+          PRODUCT_NAME=$(basename "$GITHUB_WORKSPACE")
+          PRODUCT_VERSION=$(cat VERSION)
+          echo "name=$PRODUCT_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$PRODUCT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches VERSION
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          if [ "$GITHUB_REF_NAME" != "$FILE_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match VERSION file $FILE_VERSION"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build \
+            libasound2-dev \
+            libjack-jackd2-dev \
+            libfreetype6-dev \
+            libfontconfig1-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
+
+      - name: Configure
+        run: cmake --preset release
+
+      - name: Build
+        run: cmake --build --preset release
+
+      - name: Stage plugin bundles
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          PRODUCT_NAME="${{ steps.product.outputs.name }}"
+          BUILD_PRODUCTS="build/${PRODUCT_NAME}_artefacts/Release"
+          STAGING_DIR="build/installer/staging"
+          VST3_DIR="$STAGING_DIR/VST3"
+          CLAP_DIR="$STAGING_DIR/CLAP"
+
+          mkdir -p "$VST3_DIR" "$CLAP_DIR"
+
+          cp -R "$BUILD_PRODUCTS/VST3/${PRODUCT_NAME}.vst3"  "$VST3_DIR/"
+          cp -R "$BUILD_PRODUCTS/CLAP/${PRODUCT_NAME}.clap"  "$CLAP_DIR/"
+
+          echo "STAGING_DIR=$PWD/$STAGING_DIR" >> "$GITHUB_ENV"
+
+      - name: Create archive
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          PRODUCT_NAME="${{ steps.product.outputs.name }}"
+          PRODUCT_VERSION="${{ steps.product.outputs.version }}"
+          OUTPUT_DIR="build/installer/output"
+
+          mkdir -p "$OUTPUT_DIR"
+
+          cat > "$STAGING_DIR/INSTALL.txt" <<'INSTRUCTIONS'
+          Copy the VST3 and CLAP folders' contents into your plugin directories:
+
+            VST3 -> ~/.vst3            (or /usr/lib/vst3 for all users)
+            CLAP -> ~/.clap            (or /usr/lib/clap for all users)
+          INSTRUCTIONS
+
+          tar -czf "$PWD/$OUTPUT_DIR/${PRODUCT_NAME}-v${PRODUCT_VERSION}-linux-x86_64.tar.gz" \
+            -C "$STAGING_DIR" .
+
+      - name: Upload installer artifact
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.product.outputs.name }}-installer-linux
+          path: build/installer/output/*.tar.gz
+
   release:
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos, build-linux]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -282,3 +376,4 @@ jobs:
           files: |
             artifacts/**/*.exe
             artifacts/**/*.pkg
+            artifacts/**/*.tar.gz
