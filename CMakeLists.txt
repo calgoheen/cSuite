@@ -72,6 +72,13 @@ if(MSVC)
             NOMINMAX)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    # GCC's devirtualization pass crashes the LTO symbol streamer (ICE in
+    # write_symbol, at lto-streamer-out.cc). Turning it off keeps the rest 
+    # of LTO available.
+    target_compile_options(${PROJECT_NAME} PUBLIC -fno-devirtualize)
+endif()
+
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         ${PROJECT_NAME}_Assets
