@@ -63,7 +63,7 @@ public:
 
     std::optional<cgo::ConnectionID>
         addModulation (cgo::ModulatorID source, cgo::NodeRef targetNode, int targetParam, float depth = 1.0f, bool bipolar = false);
-    std::optional<cgo::ConnectionID> addDepthModulation (cgo::ConnectionID connection, cgo::ModulatorID source, float depth = 1.0f, bool bipolar = false);
+    std::optional<cgo::ConnectionID> addDepthModulation (cgo::ConnectionID connection, cgo::ModulatorID source, float depth = 0.0f, bool bipolar = false);
     void removeModulation (cgo::ConnectionID id);
     void setModulationBipolar (cgo::ConnectionID id, bool bipolar);
     void setModulationDepth (cgo::ConnectionID id, float depth);

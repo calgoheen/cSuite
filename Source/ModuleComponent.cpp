@@ -26,6 +26,99 @@ constexpr double dragImageScale = 2.0;
 
 constexpr int cellHeight = labelHeight + knobHeight;
 
+constexpr int depthRowTrackWidth = 110;
+constexpr int depthRowGap = 10;
+constexpr int depthRowTrailing = 8;
+
+const juce::String depthWidestValue { "-0.00" };
+
+class DepthMenuRow : public juce::PopupMenu::CustomComponent
+{
+public:
+    DepthMenuRow (juce::String labelText,
+                  float initialValue,
+                  std::function<void (float)> onChange,
+                  std::function<void()> onGestureStart,
+                  std::function<void()> onGestureEnd)
+      : juce::PopupMenu::CustomComponent (false), label (std::move (labelText))
+    {
+        slider.setRange (-1.0f, 1.0f);
+        slider.setValue (initialValue);
+
+        slider.onValueChange = [this, changed = std::move (onChange)] (float newDepth)
+        {
+            repaint();
+            changed (newDepth);
+        };
+
+        slider.onDragStart = std::move (onGestureStart);
+        slider.onDragEnd = std::move (onGestureEnd);
+
+        addAndMakeVisible (slider);
+    }
+
+    void getIdealSize (int& idealWidth, int& idealHeight) override
+    {
+        idealHeight = juce::roundToInt (getLookAndFeel().getPopupMenuFont().getHeight() * 1.3f);
+
+        const auto font = itemFont (idealHeight);
+
+        idealWidth = textIndent (idealHeight) + juce::GlyphArrangement::getStringWidthInt (font, label) + depthRowGap + depthRowTrackWidth + depthRowGap
+                   + juce::GlyphArrangement::getStringWidthInt (font, depthWidestValue) + depthRowTrailing + 2 * border();
+    }
+
+    void resized() override
+    {
+        auto area = getLocalBounds();
+
+        area.removeFromLeft (textIndent (getHeight()) + labelWidth() + depthRowGap);
+        slider.setBounds (area.removeFromLeft (depthRowTrackWidth));
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        const auto font = itemFont (getHeight());
+
+        auto area = getLocalBounds();
+        area.removeFromLeft (textIndent (getHeight()));
+
+        g.setFont (font);
+        g.setColour (findColour (juce::PopupMenu::textColourId));
+
+        g.drawText (label, area.removeFromLeft (labelWidth()), juce::Justification::centredLeft);
+
+        area.removeFromLeft (depthRowGap + depthRowTrackWidth + depthRowGap);
+
+        g.drawText (valueText(), area, juce::Justification::centredLeft);
+    }
+
+private:
+    juce::String valueText() const
+    {
+        const auto value = slider.getValue();
+
+        return (value < 0.0f ? "" : "+") + juce::String (value, 2);
+    }
+
+    int labelWidth() const { return juce::GlyphArrangement::getStringWidthInt (itemFont (getHeight()), label); }
+
+    int border() const { return getLookAndFeel().getPopupMenuBorderSize(); }
+
+    static float maxFontHeight (int itemHeight) { return (float) (itemHeight - 2) / 1.3f; }
+
+    juce::Font itemFont (int itemHeight) const
+    {
+        auto font = getLookAndFeel().getPopupMenuFont();
+
+        return font.getHeight() > maxFontHeight (itemHeight) ? font.withHeight (maxFontHeight (itemHeight)) : font;
+    }
+
+    int textIndent (int itemHeight) const { return 1 + 5 + juce::roundToInt (maxFontHeight (itemHeight)) - border(); }
+
+    const juce::String label;
+    cgo::DepthSlider slider;
+};
+
 } // namespace
 
 ModuleComponent::GrabTab::GrabTab (ModuleComponent& o) : owner (o) {}
@@ -403,11 +496,100 @@ void ModuleComponent::handleDrop (int paramIndex, const juce::var& payload)
     refreshModulation();
 }
 
-void ModuleComponent::showModulationMenu (int paramIndex)
+juce::PopupMenu ModuleComponent::buildDepthSourceMenu (cgo::ConnectionID connection)
 {
+    juce::Component::SafePointer<ModuleComponent> safe (this);
+
     const auto& modulation = context.session.getGraph().modulation();
 
-    const auto entries = modulation.getModulationsFor (context.node, paramIndex);
+    juce::PopupMenu menu;
+
+    for (const auto source : context.session.getModulatorOrder())
+        menu.addItem (context.session.getModulatorLabel (source),
+                      modulation.canAddDepthModulation (connection, source),
+                      false,
+                      [safe, connection, source]
+                      {
+                          if (safe != nullptr)
+                              safe->context.session.addDepthModulation (connection, source);
+                      });
+
+    return menu;
+}
+
+juce::PopupMenu ModuleComponent::buildConnectionMenu (const cgo::ModulationGraph::ModulationEntry& entry)
+{
+    juce::Component::SafePointer<ModuleComponent> safe (this);
+
+    const auto id = entry.id;
+    const bool bipolar = entry.bipolar;
+
+    juce::PopupMenu menu;
+
+    menu.addItem ("Delete",
+                  [safe, id]
+                  {
+                      if (safe != nullptr)
+                          safe->context.session.removeModulation (id);
+                  });
+
+    const int rowId = (int) id.uid + 1;
+
+    auto gesture = [safe] (juce::String name)
+    {
+        return std::pair { [safe, name] { if (safe != nullptr) safe->context.session.beginGesture (name); },
+                           [safe] { if (safe != nullptr) safe->context.session.endGesture(); } };
+    };
+
+    menu.addItem ("Bipolar",
+                  true,
+                  bipolar,
+                  [safe, id, bipolar]
+                  {
+                      if (safe != nullptr)
+                          safe->context.session.setModulationBipolar (id, ! bipolar);
+                  });
+
+    auto [beginDepth, endDepth] = gesture ("Modulation depth");
+
+    const bool modulatesDepth = std::holds_alternative<cgo::ModulationGraph::DepthTarget> (entry.target);
+
+    const float depthPerUnit = modulatesDepth ? 0.5f : 1.0f;
+
+    menu.addCustomItem (rowId,
+                        std::make_unique<DepthMenuRow> ("Depth",
+                                                        entry.depth / depthPerUnit,
+                                                        [safe, id, depthPerUnit] (float depth)
+                                                        {
+                                                            if (safe == nullptr)
+                                                                return;
+
+                                                            safe->context.session.setModulationDepth (id, depth * depthPerUnit);
+                                                            safe->refreshModulation();
+                                                        },
+                                                        beginDepth,
+                                                        endDepth),
+                        nullptr);
+
+    if (modulatesDepth)
+        return menu;
+
+    menu.addSubMenu ("Add Depth Modulator", buildDepthSourceMenu (id));
+
+    const auto depths = context.session.getGraph().modulation().getDepthModulations (id);
+
+    if (! depths.empty())
+        menu.addSeparator();
+
+    for (const auto& depthEntry : depths)
+        menu.addSubMenu (context.session.getModulatorLabel (depthEntry.source), buildConnectionMenu (depthEntry));
+
+    return menu;
+}
+
+void ModuleComponent::showModulationMenu (int paramIndex)
+{
+    const auto entries = context.session.getGraph().modulation().getModulationsFor (context.node, paramIndex);
 
     if (entries.empty())
         return;
@@ -422,29 +604,9 @@ void ModuleComponent::showModulationMenu (int paramIndex)
 
     for (const auto& entry : entries)
     {
-        const auto id = entry.id;
-        const bool bipolar = entry.bipolar;
+        menu.addSubMenu (context.session.getModulatorLabel (entry.source), buildConnectionMenu (entry));
 
-        juce::PopupMenu source;
-
-        source.addItem ("Delete",
-                        [safe, id]
-                        {
-                            if (safe != nullptr)
-                                safe->context.session.removeModulation (id);
-                        });
-        source.addItem ("Bipolar",
-                        true,
-                        bipolar,
-                        [safe, id, bipolar]
-                        {
-                            if (safe != nullptr)
-                                safe->context.session.setModulationBipolar (id, ! bipolar);
-                        });
-
-        menu.addSubMenu (context.session.getModulatorLabel (entry.source), source);
-
-        all.push_back (id);
+        all.push_back (entry.id);
     }
 
     menu.addSeparator();

@@ -34,6 +34,9 @@ SuiteLookAndFeel::SuiteLookAndFeel()
     setColour (cgo::ModKnob::modulationColourId, juce::Colour (palette::accent));
     setColour (cgo::ModKnob::liveValueColourId, juce::Colour (palette::text));
 
+    setColour (cgo::DepthSlider::troughColourId, juce::Colour (palette::background));
+    setColour (cgo::DepthSlider::valueColourId, juce::Colour (palette::accent));
+
     setColour (ModuleComponent::backgroundColourId, juce::Colour (palette::surface));
     setColour (ModuleComponent::outlineColourId, juce::Colour (palette::outline));
     setColour (ModuleComponent::selectedOutlineColourId, juce::Colour (palette::accent));

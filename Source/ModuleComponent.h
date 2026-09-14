@@ -88,6 +88,8 @@ private:
     float getLiveValue (const cgo::ModulatedParameter& param) const;
     void handleDrop (int paramIndex, const juce::var& payload);
     void showModulationMenu (int paramIndex);
+    juce::PopupMenu buildDepthSourceMenu (cgo::ConnectionID connection);
+    juce::PopupMenu buildConnectionMenu (const cgo::ModulationGraph::ModulationEntry& entry);
 
     ModuleContext context;
 

@@ -595,8 +595,18 @@ void Session::flushNotifications()
 void Session::copyModulations (cgo::NodeRef from, cgo::NodeRef to, int numParams)
 {
     for (int i = 0; i < numParams; i++)
+    {
         for (const auto& e : graph.modulation().getModulationsFor (from, i))
-            addModulation (e.source, to, i, e.depth, e.bipolar);
+        {
+            const auto copy = addModulation (e.source, to, i, e.depth, e.bipolar);
+
+            if (! copy.has_value())
+                continue;
+
+            for (const auto& d : graph.modulation().getDepthModulations (e.id))
+                addDepthModulation (*copy, d.source, d.depth, d.bipolar);
+        }
+    }
 }
 
 void Session::rebuildChain (const std::vector<cgo::ProcessorID>& order)
