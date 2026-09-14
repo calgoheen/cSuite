@@ -62,6 +62,8 @@ SuiteComponent::SuiteComponent (Session& s) : session (s)
 {
     setLookAndFeel (lookAndFeel);
 
+    stepper.setMaxRateHz (animationRateHz);
+
     titleLabel.setText ("cSuite", juce::dontSendNotification);
     titleLabel.setJustificationType (juce::Justification::centred);
     titleLabel.setFont (juce::Font (juce::FontOptions ((float) titleBarHeight - 10.0f, juce::Font::bold)));
@@ -293,7 +295,7 @@ void SuiteComponent::syncView()
     auto makeModule = [this, &graph] (cgo::NodeRef node, const juce::String& name)
     {
         auto module =
-            std::make_unique<ModuleComponent> (graph.getNode (node), name, ModuleContext { session, node, [this] { return getActiveModFocus(); }, this });
+            std::make_unique<ModuleComponent> (graph.getNode (node), name, ModuleContext { session, node, [this] { return getActiveModFocus(); }, this, &stepper });
 
         module->onModulationDropped = [this] (cgo::ModulatorID source) { setModFocus (source); };
 

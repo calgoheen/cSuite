@@ -48,6 +48,9 @@ private:
         juce::OwnedArray<juce::TextButton> buttons;
     };
 
+    static constexpr double animationRateHz = 60.0;
+    static constexpr int designWidth = 1200;
+
     void timerCallback() override;
     void changeListenerCallback (juce::ChangeBroadcaster* source) override; // the edit history changed
     void nodeAboutToBeRemoved (cgo::NodeRef node) override;
@@ -92,6 +95,8 @@ private:
     juce::TextButton saveButton;
     juce::TextButton loadButton;
 
+    cgo::FrameStepper stepper { *this };
+
     StripComponent modulatorStrip { 2 };
     StripComponent processorStrip { 4 };
     juce::Viewport modulatorViewport;
@@ -104,8 +109,6 @@ private:
     std::optional<cgo::ModulatorID> modFocus;
     std::optional<cgo::ModulatorID> hoverFocus;
     std::optional<cgo::NodeRef> pendingReveal;
-
-    static constexpr int designWidth = 1200;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SuiteComponent)
 };

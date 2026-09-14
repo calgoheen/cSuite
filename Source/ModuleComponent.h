@@ -21,9 +21,10 @@ struct ModuleContext
     cgo::NodeRef node;
     std::function<ModFocus()> getModFocus;
     juce::Component* popupParent = nullptr;
+    cgo::FrameStepper* stepper = nullptr;
 };
 
-class ModuleComponent : public juce::Component, private juce::Timer
+class ModuleComponent : public juce::Component, private cgo::FrameStepper::Listener
 {
 public:
     enum ColourIds
@@ -36,6 +37,7 @@ public:
     static int getHeightForRows (int rows);
 
     ModuleComponent (cgo::ParameterOwner& owner, juce::String displayName, ModuleContext context);
+    ~ModuleComponent() override;
 
     void resized() override;
     void paint (juce::Graphics& g) override;
@@ -81,7 +83,7 @@ private:
         std::shared_ptr<const cgo::ModulatedValue> activeDepth;
     };
 
-    void timerCallback() override;
+    void step() override;
     void updateLayout();
     juce::Image createDragImage();
     void setHovered (bool nowHovered);

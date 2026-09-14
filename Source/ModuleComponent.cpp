@@ -14,7 +14,6 @@ constexpr int padding = 8;
 constexpr int minTitleWidth = 64;
 constexpr int tabInset = 4;
 constexpr float badgeSize = 9.0f;
-constexpr int repaintHz = 30;
 
 constexpr float arrowThickness = 1.5f;
 constexpr float arrowHeadWidth = 5.0f;
@@ -231,7 +230,14 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
 
     refreshModulation();
 
-    startTimerHz (repaintHz);
+    if (context.stepper != nullptr)
+        context.stepper->add (this);
+}
+
+ModuleComponent::~ModuleComponent()
+{
+    if (context.stepper != nullptr)
+        context.stepper->remove (this);
 }
 
 void ModuleComponent::resized()
@@ -395,7 +401,8 @@ void ModuleComponent::detach()
 
     detached = true;
 
-    stopTimer();
+    if (context.stepper != nullptr)
+        context.stepper->remove (this);
 
     for (auto& control : controls)
     {
@@ -409,7 +416,7 @@ void ModuleComponent::detach()
 
 bool ModuleComponent::isDetached() const { return detached; }
 
-void ModuleComponent::timerCallback()
+void ModuleComponent::step()
 {
     for (auto& control : controls)
     {
