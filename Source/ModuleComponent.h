@@ -78,6 +78,7 @@ private:
         std::unique_ptr<cgo::ModKnob> knob;
         std::unique_ptr<juce::SliderParameterAttachment> attachment;
         std::optional<cgo::ConnectionID> activeConnection;
+        std::shared_ptr<const cgo::ModulatedValue> activeDepth;
     };
 
     void timerCallback() override;
@@ -88,6 +89,7 @@ private:
     float getLiveValue (const cgo::ModulatedParameter& param) const;
     void handleDrop (int paramIndex, const juce::var& payload);
     void showModulationMenu (int paramIndex);
+    juce::PopupMenu buildSourceMenu (int paramIndex);
     juce::PopupMenu buildDepthSourceMenu (cgo::ConnectionID connection);
     juce::PopupMenu buildConnectionMenu (const cgo::ModulationGraph::ModulationEntry& entry);
 

@@ -363,15 +363,20 @@ void ModuleComponent::refreshModulation()
         std::optional<cgo::ModKnob::Ring> ring;
 
         control.activeConnection.reset();
+        control.activeDepth.reset();
 
         if (focused != modulations.end())
         {
-            ring = cgo::ModKnob::Ring { focused->depth, focused->bipolar, focus.isPreview };
+            ring = cgo::ModKnob::Ring { focused->depth, focused->bipolar, focus.isPreview, ! modulation.getDepthModulations (focused->id).empty() };
             control.activeConnection = focused->id;
+            control.activeDepth = modulation.getDepthValue (focused->id);
         }
 
         control.knob->setModulation (ring, ! ring.has_value() && ! modulations.empty());
         control.knob->setLiveValue (getLiveValue (*control.parameter));
+
+        if (control.activeDepth != nullptr)
+            control.knob->setLiveDepth (control.activeDepth->getCurrentValue());
     }
 
     repaint();
@@ -395,6 +400,7 @@ void ModuleComponent::detach()
     for (auto& control : controls)
     {
         control.attachment.reset();
+        control.activeDepth.reset();
         control.parameter = nullptr;
     }
 
@@ -406,7 +412,12 @@ bool ModuleComponent::isDetached() const { return detached; }
 void ModuleComponent::timerCallback()
 {
     for (auto& control : controls)
+    {
         control.knob->setLiveValue (getLiveValue (*control.parameter));
+
+        if (control.activeDepth != nullptr)
+            control.knob->setLiveDepth (control.activeDepth->getCurrentValue());
+    }
 }
 
 void ModuleComponent::updateLayout()
@@ -494,6 +505,27 @@ void ModuleComponent::handleDrop (int paramIndex, const juce::var& payload)
         onModulationDropped (source);
 
     refreshModulation();
+}
+
+juce::PopupMenu ModuleComponent::buildSourceMenu (int paramIndex)
+{
+    juce::Component::SafePointer<ModuleComponent> safe (this);
+
+    const auto& modulation = context.session.getGraph().modulation();
+
+    juce::PopupMenu menu;
+
+    for (const auto source : context.session.getModulatorOrder())
+        menu.addItem (context.session.getModulatorLabel (source),
+                      modulation.canAddModulation (source, context.node, paramIndex),
+                      false,
+                      [safe, paramIndex, source]
+                      {
+                          if (safe != nullptr)
+                              safe->context.session.addModulation (source, safe->context.node, paramIndex);
+                      });
+
+    return menu;
 }
 
 juce::PopupMenu ModuleComponent::buildDepthSourceMenu (cgo::ConnectionID connection)
@@ -591,7 +623,9 @@ void ModuleComponent::showModulationMenu (int paramIndex)
 {
     const auto entries = context.session.getGraph().modulation().getModulationsFor (context.node, paramIndex);
 
-    if (entries.empty())
+    auto sources = buildSourceMenu (paramIndex);
+
+    if (entries.empty() && sources.getNumItems() == 0)
         return;
 
     juce::Component::SafePointer<ModuleComponent> safe (this);
@@ -599,8 +633,13 @@ void ModuleComponent::showModulationMenu (int paramIndex)
     juce::PopupMenu menu;
     menu.setLookAndFeel (&getLookAndFeel());
 
+    menu.addSubMenu ("Add Modulator", std::move (sources));
+
     std::vector<cgo::ConnectionID> all;
     all.reserve (entries.size());
+
+    if (! entries.empty())
+        menu.addSeparator();
 
     for (const auto& entry : entries)
     {
@@ -609,19 +648,22 @@ void ModuleComponent::showModulationMenu (int paramIndex)
         all.push_back (entry.id);
     }
 
-    menu.addSeparator();
+    if (! entries.empty())
+    {
+        menu.addSeparator();
 
-    menu.addItem ("Clear all modulation",
-                  [safe, all]
-                  {
-                      if (safe == nullptr)
-                          return;
+        menu.addItem ("Clear all modulation",
+                      [safe, all]
+                      {
+                          if (safe == nullptr)
+                              return;
 
-                      Session::ScopedBatch batch { safe->context.session, "Clear all modulation" };
+                          Session::ScopedBatch batch { safe->context.session, "Clear all modulation" };
 
-                      for (const auto id : all)
-                          safe->context.session.removeModulation (id);
-                  });
+                          for (const auto id : all)
+                              safe->context.session.removeModulation (id);
+                      });
+    }
 
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (*controls[(size_t) paramIndex].knob));
 }
