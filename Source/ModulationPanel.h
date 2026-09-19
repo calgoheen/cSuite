@@ -60,7 +60,6 @@ private:
         explicit OutsideWatcher (ModulationPanel& o) : owner (o) {}
 
         void mouseDown (const juce::MouseEvent& e) override { owner.handleOutsideEvent (e); }
-        void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails&) override { owner.handleOutsideEvent (e); }
 
         ModulationPanel& owner;
     };

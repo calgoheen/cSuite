@@ -213,7 +213,10 @@ void SuiteComponent::mouseWheelMove (const juce::MouseEvent& e, const juce::Mous
     for (auto* viewport : { &modulatorViewport, &processorViewport })
         if (viewport->getBounds().contains (position))
             if (viewport->useMouseWheelMoveIfNeeded (e.getEventRelativeTo (viewport), wheel))
+            {
+                modulationPanel.dismiss();
                 return;
+            }
 
     juce::Component::mouseWheelMove (e, wheel);
 }
