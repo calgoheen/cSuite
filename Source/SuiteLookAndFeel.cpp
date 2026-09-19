@@ -52,6 +52,12 @@ SuiteLookAndFeel::SuiteLookAndFeel()
     setColour (SuiteComponent::titleBarColourId, juce::Colour (palette::raised));
     setColour (SuiteComponent::titleTextColourId, juce::Colour (palette::text));
 
+    setColour (juce::TextEditor::backgroundColourId, juce::Colour (palette::background));
+    setColour (juce::TextEditor::textColourId, juce::Colour (palette::text));
+    setColour (juce::TextEditor::highlightColourId, juce::Colour (palette::accent).withAlpha (0.35f));
+    setColour (juce::TextEditor::highlightedTextColourId, juce::Colour (palette::text));
+    setColour (juce::CaretComponent::caretColourId, juce::Colour (palette::accent));
+
     setColour (juce::BubbleComponent::backgroundColourId, juce::Colour (palette::background));
     setColour (juce::BubbleComponent::outlineColourId, juce::Colour (palette::text));
     setColour (juce::TooltipWindow::textColourId, juce::Colour (palette::text));
@@ -79,6 +85,14 @@ juce::Component* SuiteLookAndFeel::getParentComponentForMenuOptions (const juce:
 
     return cgo::ResizableEditor::getContentComponent (options.getTargetComponent());
 }
+
+void SuiteLookAndFeel::fillTextEditorBackground (juce::Graphics& g, int width, int height, juce::TextEditor& editor)
+{
+    g.setColour (editor.findColour (juce::TextEditor::backgroundColourId));
+    g.fillRoundedRectangle (juce::Rectangle<int> (width, height).toFloat(), bubbleCornerSize);
+}
+
+void SuiteLookAndFeel::drawTextEditorOutline (juce::Graphics&, int, int, juce::TextEditor&) {}
 
 juce::Font SuiteLookAndFeel::getLabelFont (juce::Label& label)
 {

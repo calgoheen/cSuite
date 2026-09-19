@@ -75,6 +75,15 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
     titleLabel.setInterceptsMouseClicks (false, true);
     titleLabel.onTextChange = [this] { commitTitle(); };
 
+    titleLabel.onEditorShow = [this]
+    {
+        if (auto* editor = titleLabel.getCurrentTextEditor())
+        {
+            editor->setJustification (titleLabel.getJustificationType());
+            editor->setIndents (editor->getLeftIndent(), 0);
+        }
+    };
+
     addAndMakeVisible (titleLabel);
 
     if (const auto* id = std::get_if<cgo::ModulatorID> (&context.node))

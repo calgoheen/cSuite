@@ -14,6 +14,8 @@ public:
     void setComponentEffectForBubbleComponent (juce::BubbleComponent& bubble) override;
     int getSliderPopupPlacement (juce::Slider& slider) override;
     juce::Component* getParentComponentForMenuOptions (const juce::PopupMenu::Options& options) override;
+    void fillTextEditorBackground (juce::Graphics& g, int width, int height, juce::TextEditor& editor) override;
+    void drawTextEditorOutline (juce::Graphics& g, int width, int height, juce::TextEditor& editor) override;
 
     juce::Font getLabelFont (juce::Label& label) override;
     juce::Font getTextButtonFont (juce::TextButton& button, int buttonHeight) override;
