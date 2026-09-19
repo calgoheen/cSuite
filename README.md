@@ -4,14 +4,13 @@
 
 ## Overview
 
-cSuite is an effect rack audio plugin available in VST3, AU, and CLAP formats for Mac and Windows, built using C++ and JUCE.
-
-It is currently in alpha and is subject to significant changes before the release, including changes that break saved presets and projects.
+cSuite is a semi-modular effect rack audio plugin available in VST3, AU, and CLAP formats for Mac, Windows, and Linux.
 
 ### Features
 
 - Add as many effects and modulators as you need
 - Drag-and-drop audio rate modulation
+- Modulate an existing modulation's depth parameter
 - Save and load presets
 - Undo and redo support
 - Resizable interface
@@ -27,16 +26,17 @@ It is currently in alpha and is subject to significant changes before the releas
 - Flanger
 - Gate
 - Phaser
+- Pitch
 - Reverb
 - Tape Stop
 - Utility
 
 ### Modulators
 
-- LFO
-- Random
-- Macro
 - Envelope Follower
+- LFO
+- Macro
+- Random
 
 ## Build Instructions
 
