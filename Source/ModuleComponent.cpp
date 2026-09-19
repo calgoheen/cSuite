@@ -110,6 +110,9 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
         control.knob = std::make_unique<cgo::ModKnob>();
         control.knob->setPopupDisplayEnabled (true, false, context.popupParent);
 
+        if (const auto unit = param->parameter.getLabel(); unit.isNotEmpty())
+            control.knob->setTextValueSuffix (" " + unit);
+
         control.knob->onDragStart = [this, i]
         {
             if (const auto* dragged = controls[(size_t) i].parameter)
