@@ -50,10 +50,10 @@ private:
     };
 
     static constexpr double animationRateHz = 60.0;
-    static constexpr int designWidth = 1200;
+    static constexpr int designWidth = 1000;
 
     void timerCallback() override;
-    void changeListenerCallback (juce::ChangeBroadcaster* source) override; // the edit history changed
+    void changeListenerCallback (juce::ChangeBroadcaster* source) override; // edit history
     void nodeAboutToBeRemoved (cgo::NodeRef node) override;
     void sessionChanged() override;
     void handleAsyncUpdate() override;
