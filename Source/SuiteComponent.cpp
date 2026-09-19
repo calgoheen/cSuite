@@ -353,6 +353,7 @@ void SuiteComponent::syncView()
 
     applySelection();
     applyLabels();
+    applyBypass();
     applyModFocus();
 
     modulationPanel.refresh();
@@ -378,6 +379,12 @@ void SuiteComponent::showNodeMenu()
 
     juce::PopupMenu menu;
     menu.setLookAndFeel (&getLookAndFeel());
+
+    if (const auto* id = std::get_if<cgo::ProcessorID> (&*selection))
+    {
+        const bool bypassed = session.isProcessorBypassed (*id);
+        menu.addItem (bypassed ? "Enable" : "Bypass", [this, nodeId = *id, bypassed] { session.setProcessorBypassed (nodeId, ! bypassed); });
+    }
 
     menu.addItem ("Rename", [this] { renameSelection(); });
     menu.addItem ("Duplicate", [this] { duplicateSelection(); });
@@ -445,6 +452,12 @@ void SuiteComponent::applyLabels()
     for (auto* strip : { &modulatorStrip, &processorStrip })
         for (int i = 0; i < strip->size(); i++)
             strip->getModule (i).refreshLabel();
+}
+
+void SuiteComponent::applyBypass()
+{
+    for (int i = 0; i < processorStrip.size(); i++)
+        processorStrip.getModule (i).refreshBypass();
 }
 
 void SuiteComponent::applyHistory()

@@ -41,6 +41,8 @@ SuiteLookAndFeel::SuiteLookAndFeel()
     setColour (ModuleComponent::backgroundColourId, juce::Colour (palette::surface));
     setColour (ModuleComponent::outlineColourId, juce::Colour (palette::outline));
     setColour (ModuleComponent::selectedOutlineColourId, juce::Colour (palette::accent));
+    setColour (ModuleComponent::activeColourId, juce::Colour (palette::text));
+    setColour (ModuleComponent::bypassedColourId, juce::Colour (palette::outline));
 
     setColour (ModulationPanel::backgroundColourId, juce::Colour (palette::menu));
     setColour (ModulationPanel::outlineColourId, juce::Colour (palette::outline));

@@ -68,6 +68,9 @@ public:
     void setModulationBipolar (cgo::ConnectionID id, bool bipolar);
     void setModulationDepth (cgo::ConnectionID id, float depth);
 
+    bool isProcessorBypassed (cgo::ProcessorID id) const;
+    void setProcessorBypassed (cgo::ProcessorID id, bool shouldBeBypassed);
+
     juce::String getProcessorLabel (cgo::ProcessorID id) const;
     juce::String getModulatorLabel (cgo::ModulatorID id) const;
     void setProcessorLabel (cgo::ProcessorID id, const juce::String& label);

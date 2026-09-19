@@ -32,7 +32,9 @@ public:
     {
         backgroundColourId = 0x1e00200,
         outlineColourId,
-        selectedOutlineColourId
+        selectedOutlineColourId,
+        activeColourId,
+        bypassedColourId
     };
 
     static int getHeightForRows (int rows);
@@ -51,6 +53,7 @@ public:
     void setSelected (bool shouldBeSelected);
     void beginRename();
     void refreshLabel();
+    void refreshBypass();
     void refreshModulation();
     void setAcceptsModulationDrops (bool shouldAccept);
     void detach();
@@ -60,23 +63,10 @@ public:
     std::function<void (cgo::ModulatorID source)> onModulationDropped;
 
 private:
-    class GrabTab : public juce::Component
-    {
-    public:
-        explicit GrabTab (ModuleComponent& owner);
-
-        void paint (juce::Graphics& g) override;
-        void mouseDrag (const juce::MouseEvent& e) override;
-
-        juce::var dragDescription;
-
-    private:
-        ModuleComponent& owner;
-    };
-
     struct ParamControl
     {
         cgo::ModulatedParameter* parameter = nullptr;
+        int parameterIndex = 0;
         std::unique_ptr<juce::Label> label;
         std::unique_ptr<cgo::ModKnob> knob;
         std::unique_ptr<juce::SliderParameterAttachment> attachment;
@@ -95,11 +85,14 @@ private:
     ModuleContext context;
 
     juce::Label titleLabel;
-    std::unique_ptr<GrabTab> grabTab; // modulators only
+    std::unique_ptr<juce::Component> grabTab; // modulators only
+    std::unique_ptr<juce::Button> bypassButton; // processors only
+    const juce::AudioProcessorParameter* bypassParameter = nullptr;
     std::vector<ParamControl> controls;
     int rows = 1;
     int columns = 1;
     bool selected = false;
+    bool bypassed = false;
     bool hovered = false;
     bool detached = false;
 

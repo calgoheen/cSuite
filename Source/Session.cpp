@@ -307,6 +307,33 @@ void Session::setModulationBipolar (cgo::ConnectionID id, bool bipolar)
 
 void Session::setModulationDepth (cgo::ConnectionID id, float depth) { graph.modulation().setModulationDepth (id, depth); }
 
+bool Session::isProcessorBypassed (cgo::ProcessorID id) const
+{
+    if (! graph.processors().contains (id))
+        return false;
+
+    const auto* param = graph.processors().getProcessor (id).getBypassParameter();
+
+    return param != nullptr && param->getValue() >= 0.5f;
+}
+
+void Session::setProcessorBypassed (cgo::ProcessorID id, bool shouldBeBypassed)
+{
+    if (! graph.processors().contains (id) || isProcessorBypassed (id) == shouldBeBypassed)
+        return;
+
+    auto* param = graph.processors().getProcessor (id).getBypassParameter();
+
+    if (param == nullptr)
+        return;
+
+    ScopedBatch batch { *this, (shouldBeBypassed ? "Bypass " : "Enable ") + presentation.getProcessorLabel (id) };
+
+    param->setValueNotifyingHost (shouldBeBypassed ? 1.0f : 0.0f);
+
+    notifyStateDirty();
+}
+
 juce::String Session::getProcessorLabel (cgo::ProcessorID id) const { return presentation.getProcessorLabel (id); }
 
 juce::String Session::getModulatorLabel (cgo::ModulatorID id) const { return presentation.getModulatorLabel (id); }

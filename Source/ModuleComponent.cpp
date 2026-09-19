@@ -19,50 +19,91 @@ constexpr float arrowThickness = 1.5f;
 constexpr float arrowHeadWidth = 5.0f;
 constexpr float arrowHeadLength = 4.0f;
 
+constexpr float bypassedAlpha = 0.35f;
+constexpr int bypassInset = 2;
+constexpr float hoverRingInset = 2.0f;
+constexpr float hoverRingThickness = 1.0f;
+
 constexpr int dragChipPadding = 6;
 constexpr int dragChipGap = 16;
 constexpr double dragImageScale = 2.0;
 
 constexpr int cellHeight = labelHeight + knobHeight;
 
+class GrabTab final : public juce::Component
+{
+public:
+    GrabTab (juce::var description, std::function<juce::Image()> imageFactory)
+      : dragDescription (std::move (description)), createDragImage (std::move (imageFactory))
+    {
+        setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        const auto bounds = getLocalBounds().toFloat();
+        const auto centre = bounds.getCentre();
+
+        juce::Path arrows;
+
+        for (const auto& end : { juce::Point<float> (bounds.getX(), centre.y),
+                                 juce::Point<float> (bounds.getRight(), centre.y),
+                                 juce::Point<float> (centre.x, bounds.getY()),
+                                 juce::Point<float> (centre.x, bounds.getBottom()) })
+            arrows.addArrow ({ centre, end }, arrowThickness, arrowHeadWidth, arrowHeadLength);
+
+        g.setColour (findColour (cgo::ModKnob::modulationColourId));
+        g.fillPath (arrows);
+    }
+
+    void mouseDrag (const juce::MouseEvent& e) override
+    {
+        if (e.mods.isPopupMenu())
+            return;
+
+        auto* container = juce::DragAndDropContainer::findParentDragContainerFor (this);
+
+        if (container == nullptr || container->isDragAndDropActive())
+            return;
+
+        const juce::ScaledImage image (createDragImage(), dragImageScale);
+        const auto bounds = image.getScaledBounds();
+
+        const juce::Point<int> offsetFromMouse { -(int) bounds.getWidth() / 2, 0 };
+
+        container->startDragging (dragDescription, this, image, false, &offsetFromMouse);
+    }
+
+private:
+    juce::var dragDescription;
+    std::function<juce::Image()> createDragImage;
+};
+
+class BypassButton final : public juce::Button
+{
+public:
+    BypassButton() : juce::Button ({})
+    {
+        setClickingTogglesState (false);
+        setMouseCursor (juce::MouseCursor::PointingHandCursor);
+    }
+
+    void paintButton (juce::Graphics& g, bool shouldDrawHighlighted, bool) override
+    {
+        const auto bounds = getLocalBounds().toFloat();
+
+        g.setColour (findColour (getToggleState() ? ModuleComponent::bypassedColourId : ModuleComponent::activeColourId));
+        g.fillEllipse (juce::Rectangle<float> (badgeSize, badgeSize).withCentre (bounds.getCentre()));
+
+        if (! shouldDrawHighlighted)
+            return;
+
+        g.setColour (findColour (ModuleComponent::activeColourId));
+        g.drawEllipse (bounds.reduced (hoverRingInset), hoverRingThickness);
+    }
+};
+
 } // namespace
-
-ModuleComponent::GrabTab::GrabTab (ModuleComponent& o) : owner (o) {}
-
-void ModuleComponent::GrabTab::paint (juce::Graphics& g)
-{
-    const auto bounds = getLocalBounds().toFloat();
-    const auto centre = bounds.getCentre();
-
-    juce::Path arrows;
-
-    for (const auto& end : { juce::Point<float> (bounds.getX(), centre.y),
-                             juce::Point<float> (bounds.getRight(), centre.y),
-                             juce::Point<float> (centre.x, bounds.getY()),
-                             juce::Point<float> (centre.x, bounds.getBottom()) })
-        arrows.addArrow ({ centre, end }, arrowThickness, arrowHeadWidth, arrowHeadLength);
-
-    g.setColour (findColour (cgo::ModKnob::modulationColourId));
-    g.fillPath (arrows);
-}
-
-void ModuleComponent::GrabTab::mouseDrag (const juce::MouseEvent& e)
-{
-    if (e.mods.isPopupMenu())
-        return;
-
-    auto* container = juce::DragAndDropContainer::findParentDragContainerFor (this);
-
-    if (container == nullptr || container->isDragAndDropActive())
-        return;
-
-    const juce::ScaledImage image (owner.createDragImage(), dragImageScale);
-    const auto bounds = image.getScaledBounds();
-
-    const juce::Point<int> offsetFromMouse { -(int) bounds.getWidth() / 2, 0 };
-
-    container->startDragging (dragDescription, this, image, false, &offsetFromMouse);
-}
 
 int ModuleComponent::getHeightForRows (int rows) { return titleHeight + padding + juce::jmax (1, rows) * (cellHeight + padding); }
 
@@ -88,10 +129,17 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
 
     if (const auto* id = std::get_if<cgo::ModulatorID> (&context.node))
     {
-        grabTab = std::make_unique<GrabTab> (*this);
-        grabTab->dragDescription = juce::var ((juce::int64) id->uid);
-        grabTab->setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+        grabTab = std::make_unique<GrabTab> (juce::var ((juce::int64) id->uid), [this] { return createDragImage(); });
         addAndMakeVisible (*grabTab);
+    }
+
+    if (const auto* id = std::get_if<cgo::ProcessorID> (&context.node))
+    {
+        bypassParameter = context.session.getGraph().processors().getProcessor (*id).getBypassParameter();
+
+        bypassButton = std::make_unique<BypassButton>();
+        bypassButton->onClick = [this, nodeId = *id] { context.session.setProcessorBypassed (nodeId, ! bypassed); };
+        addAndMakeVisible (*bypassButton);
     }
 
     const auto& params = owner.getModulatedParameters();
@@ -99,7 +147,16 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
     for (int i = 0; i < params.size(); i++)
     {
         auto* param = params[i];
+
+        // Bypass has its own control in the title bar
+        if (&param->parameter == bypassParameter)
+            continue;
+
+        const int slot = (int) controls.size();
+
         ParamControl control;
+
+        control.parameterIndex = i;
 
         control.label = std::make_unique<juce::Label> (juce::String(), param->parameter.getName (64));
         control.label->setJustificationType (juce::Justification::centred);
@@ -113,17 +170,17 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
         if (const auto unit = param->parameter.getLabel(); unit.isNotEmpty())
             control.knob->setTextValueSuffix (" " + unit);
 
-        control.knob->onDragStart = [this, i]
+        control.knob->onDragStart = [this, slot]
         {
-            if (const auto* dragged = controls[(size_t) i].parameter)
+            if (const auto* dragged = controls[(size_t) slot].parameter)
                 context.session.beginGesture (dragged->parameter.getName (64));
         };
 
         control.knob->onDragEnd = [this] { context.session.endGesture(); };
 
-        control.knob->onDepthChanged = [this, i] (float depth)
+        control.knob->onDepthChanged = [this, slot] (float depth)
         {
-            const auto connection = controls[(size_t) i].activeConnection;
+            const auto connection = controls[(size_t) slot].activeConnection;
 
             if (connection.has_value())
                 context.session.setModulationDepth (*connection, depth);
@@ -133,10 +190,10 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
         control.knob->onDepthGestureEnd = [this] { context.session.endGesture(); };
 
         control.knob->onDrop = [this, i] (const juce::var& payload) { handleDrop (i, payload); };
-        control.knob->onRightClick = [this, i]
+        control.knob->onRightClick = [this, i, slot]
         {
             if (context.showModulationPanel != nullptr)
-                context.showModulationPanel (context.node, i, *controls[(size_t) i].knob);
+                context.showModulationPanel (context.node, i, *controls[(size_t) slot].knob);
         };
 
         addAndMakeVisible (*control.knob);
@@ -151,6 +208,7 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
     for (auto* child : getChildren())
         child->addMouseListener (this, true);
 
+    refreshBypass();
     refreshModulation();
 
     if (context.stepper != nullptr)
@@ -173,6 +231,12 @@ void ModuleComponent::resized()
     {
         const int size = titleHeight - 2 * tabInset;
         grabTab->setBounds (getWidth() - tabInset - size, tabInset, size, size);
+    }
+
+    if (bypassButton != nullptr)
+    {
+        const int size = titleHeight - 2 * bypassInset;
+        bypassButton->setBounds (bypassInset, bypassInset, size, size);
     }
 
     const int gridWidth = columns * (cellWidth + padding) - padding;
@@ -272,6 +336,29 @@ void ModuleComponent::refreshLabel()
     titleLabel.setText (label, juce::dontSendNotification);
 }
 
+void ModuleComponent::refreshBypass()
+{
+    if (detached || bypassParameter == nullptr)
+        return;
+
+    const bool nowBypassed = bypassParameter->getValue() >= 0.5f;
+
+    if (nowBypassed == bypassed)
+        return;
+
+    bypassed = nowBypassed;
+
+    const float alpha = bypassed ? bypassedAlpha : 1.0f;
+
+    for (auto& control : controls)
+    {
+        control.label->setAlpha (alpha);
+        control.knob->setAlpha (alpha);
+    }
+
+    bypassButton->setToggleState (bypassed, juce::dontSendNotification);
+}
+
 void ModuleComponent::refreshModulation()
 {
     if (detached)
@@ -284,7 +371,7 @@ void ModuleComponent::refreshModulation()
     {
         auto& control = controls[(size_t) i];
 
-        const auto modulations = modulation.getModulationsFor (context.node, i);
+        const auto modulations = modulation.getModulationsFor (context.node, control.parameterIndex);
 
         const auto focused =
             std::find_if (modulations.begin(), modulations.end(), [&focus] (const auto& e) { return focus.source.has_value() && e.source == *focus.source; });
@@ -327,6 +414,8 @@ void ModuleComponent::detach()
     if (context.stepper != nullptr)
         context.stepper->remove (this);
 
+    bypassParameter = nullptr;
+
     for (auto& control : controls)
     {
         control.attachment.reset();
@@ -341,6 +430,8 @@ bool ModuleComponent::isDetached() const { return detached; }
 
 void ModuleComponent::step()
 {
+    refreshBypass();
+
     for (auto& control : controls)
     {
         control.knob->setLiveValue (getLiveValue (*control.parameter));
@@ -356,7 +447,7 @@ void ModuleComponent::updateLayout()
     columns = juce::jmax (1, (n + rows - 1) / rows);
 
     const int knobWidth = padding + columns * (cellWidth + padding);
-    const int headerWidth = 2 * padding + minTitleWidth + (grabTab != nullptr ? titleHeight : 0);
+    const int headerWidth = 2 * padding + minTitleWidth + (grabTab != nullptr || bypassButton != nullptr ? titleHeight : 0);
 
     setSize (juce::jmax (knobWidth, headerWidth), getHeightForRows (rows));
 }

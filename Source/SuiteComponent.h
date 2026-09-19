@@ -73,6 +73,7 @@ private:
     void setSelection (std::optional<cgo::NodeRef> node);
     void applySelection();
     void applyLabels();
+    void applyBypass();
     void applyHistory();
     void deleteSelection();
     void renameSelection();
