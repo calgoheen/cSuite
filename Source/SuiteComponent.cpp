@@ -380,7 +380,7 @@ void SuiteComponent::showNodeMenu()
     menu.addItem ("Duplicate", [this] { duplicateSelection(); });
     menu.addItem ("Delete", [this] { deleteSelection(); });
 
-    menu.showMenuAsync (juce::PopupMenu::Options().withMousePosition());
+    menu.showMenuAsync (juce::PopupMenu::Options().withParentComponent (this).withMousePosition());
 }
 
 bool SuiteComponent::warnIfNoRoomFor (const cgo::ParameterOwner& module)

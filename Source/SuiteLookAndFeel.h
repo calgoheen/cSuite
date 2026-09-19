@@ -13,6 +13,7 @@ public:
     void drawBubble (juce::Graphics& g, juce::BubbleComponent& comp, const juce::Point<float>& tip, const juce::Rectangle<float>& body) override;
     void setComponentEffectForBubbleComponent (juce::BubbleComponent& bubble) override;
     int getSliderPopupPlacement (juce::Slider& slider) override;
+    juce::Component* getParentComponentForMenuOptions (const juce::PopupMenu::Options& options) override;
 
     juce::Font getLabelFont (juce::Label& label) override;
     juce::Font getTextButtonFont (juce::TextButton& button, int buttonHeight) override;

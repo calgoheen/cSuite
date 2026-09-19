@@ -72,6 +72,14 @@ void SuiteLookAndFeel::setComponentEffectForBubbleComponent (juce::BubbleCompone
 
 int SuiteLookAndFeel::getSliderPopupPlacement (juce::Slider&) { return juce::BubbleComponent::below; }
 
+juce::Component* SuiteLookAndFeel::getParentComponentForMenuOptions (const juce::PopupMenu::Options& options)
+{
+    if (auto* requested = LookAndFeel_V4::getParentComponentForMenuOptions (options))
+        return requested;
+
+    return cgo::ResizableEditor::getContentComponent (options.getTargetComponent());
+}
+
 juce::Font SuiteLookAndFeel::getLabelFont (juce::Label& label)
 {
     const auto requested = label.getFont();
