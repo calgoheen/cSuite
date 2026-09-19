@@ -20,6 +20,7 @@ struct ModuleContext
     Session& session;
     cgo::NodeRef node;
     std::function<ModFocus()> getModFocus;
+    std::function<void (cgo::NodeRef node, int paramIndex, juce::Component& knob)> showModulationPanel;
     juce::Component* popupParent = nullptr;
     cgo::FrameStepper* stepper = nullptr;
 };
@@ -90,10 +91,6 @@ private:
     void commitTitle();
     float getLiveValue (const cgo::ModulatedParameter& param) const;
     void handleDrop (int paramIndex, const juce::var& payload);
-    void showModulationMenu (int paramIndex);
-    juce::PopupMenu buildSourceMenu (int paramIndex);
-    juce::PopupMenu buildDepthSourceMenu (cgo::ConnectionID connection);
-    juce::PopupMenu buildConnectionMenu (const cgo::ModulationGraph::ModulationEntry& entry);
 
     ModuleContext context;
 

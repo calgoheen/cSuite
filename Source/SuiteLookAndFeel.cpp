@@ -1,5 +1,6 @@
 #include "SuiteLookAndFeel.h"
 #include "ModuleComponent.h"
+#include "ModulationPanel.h"
 #include "SuiteComponent.h"
 
 namespace palette
@@ -40,6 +41,13 @@ SuiteLookAndFeel::SuiteLookAndFeel()
     setColour (ModuleComponent::backgroundColourId, juce::Colour (palette::surface));
     setColour (ModuleComponent::outlineColourId, juce::Colour (palette::outline));
     setColour (ModuleComponent::selectedOutlineColourId, juce::Colour (palette::accent));
+
+    setColour (ModulationPanel::backgroundColourId, juce::Colour (palette::menu));
+    setColour (ModulationPanel::outlineColourId, juce::Colour (palette::outline));
+    setColour (ModulationPanel::textColourId, juce::Colour (palette::text));
+    setColour (ModulationPanel::dimTextColourId, juce::Colour (palette::text).withAlpha (0.55f));
+    setColour (ModulationPanel::highlightColourId, juce::Colour (palette::raised));
+    setColour (ModulationPanel::accentColourId, juce::Colour (palette::accent));
 
     setColour (SuiteComponent::titleBarColourId, juce::Colour (palette::raised));
     setColour (SuiteComponent::titleTextColourId, juce::Colour (palette::text));

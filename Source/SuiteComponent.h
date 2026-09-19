@@ -4,6 +4,7 @@
 #include "Session.h"
 #include "PresetBrowser.h"
 #include "StripComponent.h"
+#include "ModulationPanel.h"
 #include "SuiteLookAndFeel.h"
 
 class SuiteComponent : public juce::Component,
@@ -104,6 +105,8 @@ private:
 
     AddBar modulatorAddBar;
     AddBar processorAddBar;
+
+    ModulationPanel modulationPanel { session, stepper };
 
     std::optional<cgo::NodeRef> selection;
     std::optional<cgo::ModulatorID> modFocus;

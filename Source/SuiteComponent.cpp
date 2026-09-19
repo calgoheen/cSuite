@@ -128,6 +128,11 @@ SuiteComponent::SuiteComponent (Session& s) : session (s)
         showNodeMenu();
     };
 
+    modulationPanel.onFocusChanged = [this] { applyModFocus(); };
+    modulationPanel.onDepthChanged = [this] { applyModFocus(); };
+
+    addChildComponent (modulationPanel);
+
     session.addListener (this);
     session.getHistory().addChangeListener (this);
 
@@ -151,6 +156,8 @@ SuiteComponent::~SuiteComponent()
 
 void SuiteComponent::resized()
 {
+    modulationPanel.dismiss();
+
     auto bounds = getLocalBounds();
 
     const auto titleBar = bounds.removeFromTop (titleBarHeight);
@@ -215,6 +222,12 @@ bool SuiteComponent::keyPressed (const juce::KeyPress& key)
 {
     if (key == juce::KeyPress::escapeKey)
     {
+        if (modulationPanel.isVisible())
+        {
+            modulationPanel.dismiss();
+            return true;
+        }
+
         setSelection (std::nullopt);
         setModFocus (std::nullopt);
         return true;
@@ -294,8 +307,11 @@ void SuiteComponent::syncView()
 
     auto makeModule = [this, &graph] (cgo::NodeRef node, const juce::String& name)
     {
-        auto module =
-            std::make_unique<ModuleComponent> (graph.getNode (node), name, ModuleContext { session, node, [this] { return getActiveModFocus(); }, this, &stepper });
+        auto showPanel = [this] (cgo::NodeRef target, int paramIndex, juce::Component& knob)
+        { modulationPanel.showFor (target, paramIndex, getLocalArea (&knob, knob.getLocalBounds())); };
+
+        auto module = std::make_unique<ModuleComponent> (
+            graph.getNode (node), name, ModuleContext { session, node, [this] { return getActiveModFocus(); }, std::move (showPanel), this, &stepper });
 
         module->onModulationDropped = [this] (cgo::ModulatorID source) { setModFocus (source); };
 
@@ -335,6 +351,8 @@ void SuiteComponent::syncView()
     applySelection();
     applyLabels();
     applyModFocus();
+
+    modulationPanel.refresh();
 
     if (pendingReveal.has_value())
     {
@@ -464,6 +482,9 @@ void SuiteComponent::renameSelection()
 
 ModFocus SuiteComponent::getActiveModFocus() const
 {
+    if (const auto panelFocus = modulationPanel.getFocus(); panelFocus.has_value() && panelFocus->source != modFocus)
+        return *panelFocus;
+
     if (modFocus.has_value())
         return { modFocus, false };
 
