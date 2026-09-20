@@ -9,6 +9,7 @@ constexpr int cellWidth = 64;
 constexpr int knobHeight = 48;
 constexpr int labelHeight = 16;
 constexpr float labelFontHeight = 13.0f;
+constexpr int labelOverhang = 3;
 constexpr int titleHeight = 22;
 constexpr int padding = 8;
 constexpr int minTitleWidth = 64;
@@ -161,6 +162,7 @@ ModuleComponent::ModuleComponent (cgo::ParameterOwner& owner, juce::String displ
         control.label = std::make_unique<juce::Label> (juce::String(), param->parameter.getName (64));
         control.label->setJustificationType (juce::Justification::centred);
         control.label->setFont (juce::Font (juce::FontOptions (labelFontHeight)));
+        control.label->setBorderSize ({});
         addAndMakeVisible (*control.label);
 
         control.parameter = param;
@@ -248,7 +250,8 @@ void ModuleComponent::resized()
         const int x = left + (i / rows) * (cellWidth + padding);
         const int y = titleHeight + padding + (i % rows) * (cellHeight + padding);
 
-        controls[(size_t) i].label->setBounds (x, y, cellWidth, labelHeight);
+        // Labels overhang the cell into the padding on either side
+        controls[(size_t) i].label->setBounds (x - labelOverhang, y, cellWidth + 2 * labelOverhang, labelHeight);
         controls[(size_t) i].knob->setBounds (x, y + labelHeight, cellWidth, knobHeight);
     }
 }
