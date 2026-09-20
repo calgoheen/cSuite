@@ -39,12 +39,13 @@ juce_add_plugin(${PROJECT_NAME}
     PLUGIN_MANUFACTURER_CODE Calg
     PLUGIN_CODE Suit
     IS_SYNTH FALSE
-    COPY_PLUGIN_AFTER_BUILD TRUE
     FORMATS AU VST3 Standalone)
 
 clap_juce_extensions_plugin(TARGET ${PROJECT_NAME}
     CLAP_ID "com.CalGoheen.${PROJECT_NAME}"
     CLAP_FEATURES "audio effect" "mono" "stereo")
+
+cgo_install_plugin_after_build(${PROJECT_NAME})
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
