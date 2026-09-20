@@ -5,3 +5,5 @@
 build
 external
 CMakeUserPresets.json
+.clang-format
+.gersemirc

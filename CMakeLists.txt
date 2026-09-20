@@ -10,19 +10,21 @@ project("cSuite" VERSION ${ProjectVersion})
 
 include(FetchContent)
 
-FetchContent_Declare(JUCE
-    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 9.0.2)
+FetchContent_Declare(JUCE GIT_REPOSITORY https://github.com/juce-framework/JUCE.git GIT_TAG 9.0.2)
 FetchContent_MakeAvailable(JUCE)
 
-FetchContent_Declare(chowdsp_utils
+FetchContent_Declare(
+    chowdsp_utils
     GIT_REPOSITORY https://github.com/Chowdhury-DSP/chowdsp_utils
-    GIT_TAG ffc70ba399f9afaeefb996eb14e55a1d487270b8)
+    GIT_TAG ffc70ba399f9afaeefb996eb14e55a1d487270b8
+)
 FetchContent_MakeAvailable(chowdsp_utils)
 
-FetchContent_Declare(clap-juce-extensions
+FetchContent_Declare(
+    clap-juce-extensions
     GIT_REPOSITORY https://github.com/free-audio/clap-juce-extensions.git
-    GIT_TAG 55525c9858d4b25687be7759a5e0f70eccef218e)
+    GIT_TAG 55525c9858d4b25687be7759a5e0f70eccef218e
+)
 FetchContent_MakeAvailable(clap-juce-extensions)
 
 add_subdirectory(cgo_modules)
@@ -39,48 +41,48 @@ juce_add_plugin(${PROJECT_NAME}
     PLUGIN_MANUFACTURER_CODE Calg
     PLUGIN_CODE Suit
     IS_SYNTH FALSE
-    FORMATS AU VST3 Standalone)
+    FORMATS AU VST3 Standalone
+)
 
 clap_juce_extensions_plugin(TARGET ${PROJECT_NAME}
     CLAP_ID "com.CalGoheen.${PROJECT_NAME}"
-    CLAP_FEATURES "audio effect" "mono" "stereo")
+    CLAP_FEATURES "audio effect" "mono" "stereo"
+)
 
 cgo_install_plugin_after_build(${PROJECT_NAME})
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
-file(GLOB_RECURSE SourceFiles CONFIGURE_DEPENDS
+file(
+    GLOB_RECURSE SourceFiles
+    CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Source/*.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/*.h"
+)
 
 target_sources(${PROJECT_NAME} PRIVATE ${SourceFiles})
 
 juce_add_binary_data(${PROJECT_NAME}_Assets
     SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/Assets/font.ttf"
-        "${CMAKE_CURRENT_SOURCE_DIR}/Assets/font_bold.ttf")
+        "${CMAKE_CURRENT_SOURCE_DIR}/Assets/font_bold.ttf"
+)
 
-target_compile_definitions(${PROJECT_NAME}
-    PUBLIC
-        JUCE_VST3_CAN_REPLACE_VST2=0
-        JUCE_WEB_BROWSER=0
-        JUCE_USE_CURL=0)
+target_compile_definitions(${PROJECT_NAME} PUBLIC JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 
 if(MSVC)
-    target_compile_definitions(${PROJECT_NAME}
-        PUBLIC
-            WIN32_LEAN_AND_MEAN
-            NOMINMAX)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC's devirtualization pass crashes the LTO symbol streamer (ICE in
-    # write_symbol, at lto-streamer-out.cc). Turning it off keeps the rest 
+    # write_symbol, at lto-streamer-out.cc). Turning it off keeps the rest
     # of LTO available.
     target_compile_options(${PROJECT_NAME} PUBLIC -fno-devirtualize)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(
+    ${PROJECT_NAME}
     PRIVATE
         ${PROJECT_NAME}_Assets
         juce::juce_audio_utils
@@ -92,10 +94,7 @@ target_link_libraries(${PROJECT_NAME}
         cgo::cgo_gui
         cgo::cgo_plugin
         cgo::cgo_graph
-
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags)
+    PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags
+)
 
 juce_generate_juce_header(${PROJECT_NAME})
