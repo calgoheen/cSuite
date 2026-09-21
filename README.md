@@ -4,7 +4,9 @@
 
 ## Overview
 
-cSuite is a semi-modular effect rack audio plugin available in VST3, AU, and CLAP formats for Mac, Windows, and Linux.
+cSuite is a semi-modular audio effects rack with a flexible modulation system and intuitive interface. Available for macOS, Windows, and Linux in VST3, CLAP, and AU (macOS only) formats.
+
+You can download the latest version from the [releases](https://github.com/calgoheen/cSuite/releases) page.
 
 ### Features
 
@@ -17,28 +19,19 @@ cSuite is a semi-modular effect rack audio plugin available in VST3, AU, and CLA
 
 ### Effects
 
-- Chorus
-- Compressor
-- Crush
-- Delay
-- Distortion
-- Filter
-- Flanger
-- Gate
-- Phaser
-- Pitch
-- Reverb
-- Tape Stop
-- Utility
+Choose from 13 effects, with support for multiple instances of each:
+
+**Chorus, Compressor, Crush, Delay, Distortion, Filter, Flanger, Gate, Phaser, Pitch, Reverb, Tape Stop, Utility.**
 
 ### Modulators
 
-- Envelope Follower
-- LFO
-- Macro
-- Random
+Assign any of the 4 modulators to any parameter:
 
-## Build Instructions
+**Envelope Follower, LFO, Macro, Random.**
+
+Modulation targets can include other modulators’ parameters and the depth of an existing modulation. Create assignments via drag-and-drop or by right-clicking any knob.
+
+## Build instructions
 
 ### Prerequisites
 
@@ -59,9 +52,13 @@ cmake --build --preset release
 
 ## Contributing
 
-Not currently accepting pull requests for this project. Feel free to report bugs and/or feature requests.
+Bug reports and feature requests are welcome through GitHub Issues. Pull requests are not currently accepted.
 
-## External Dependencies
+## License
+
+cSuite is open-source and licensed under the [GNU GPLv3](LICENSE.md). Third-party dependencies are covered by their respective licenses; see the linked projects under **External dependencies**.
+
+## External dependencies
 
 - [JUCE](https://github.com/juce-framework/JUCE)
 - DSP modules from [chowdsp_utils](https://github.com/Chowdhury-DSP/chowdsp_utils)
